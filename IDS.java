@@ -1,23 +1,26 @@
 import org.pcap4j.core.*;
 import org.pcap4j.packet.*;
-import org.pcap4j.packet.namednumber.IpNumber;
 import org.pcap4j.util.NifSelector;
 
+import javax.mail.*;
+import javax.mail.internet.*;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 public class ExtendedIDS {
     private static final int SYN_FLOOD_THRESHOLD = 100;
     private static final int ICMP_FLOOD_THRESHOLD = 50;
     private static final int UDP_FLOOD_THRESHOLD = 100;
+    private static final int DNS_REQUEST_THRESHOLD = 200;
+    private static final int HTTP_REQUEST_THRESHOLD = 200;
+
     private static final Map<String, Integer> synFloodCounter = new HashMap<>();
     private static final Map<String, Integer> icmpFloodCounter = new HashMap<>();
     private static final Map<String, Integer> udpFloodCounter = new HashMap<>();
     private static final Map<String, Integer> dnsRequestCounter = new HashMap<>();
     private static final Map<String, Integer> httpRequestCounter = new HashMap<>();
-    private static final int DNS_REQUEST_THRESHOLD = 200;
-    private static final int HTTP_REQUEST_THRESHOLD = 200;
 
     public static void main(String[] args) {
         try {
@@ -25,7 +28,6 @@ public class ExtendedIDS {
             PcapHandle handle = Pcaps.openLive(nif, 65536, PcapNetworkInterface.PromiscuousMode.PROMISCUOUS, 10);
             PacketListener listener = ExtendedIDS::analyzePacket;
 
-            // Start packet capture loop
             handle.loop(PcapHandle.PcapDlt.EN10MB.value(), listener);
             handle.close();
         } catch (PcapNativeException | InterruptedException | IOException e) {
@@ -35,24 +37,19 @@ public class ExtendedIDS {
     }
 
     private static void analyzePacket(Packet packet) {
-        System.out.println(packet);
-
         if (packet.contains(TcpPacket.class)) {
             analyzeTcpPacket(packet);
         } else if (packet.contains(IcmpV4EchoPacket.class)) {
             analyzeIcmpPacket(packet);
         } else if (packet.contains(UdpPacket.class)) {
             analyzeUdpPacket(packet);
-        }
-
-        if (packet.contains(UdpPacket.class)) {
             analyzeDnsPacket(packet);
         } else if (packet.contains(HttpPacket.class)) {
             analyzeHttpPacket(packet);
         }
     }
 
-    private static void analyzeTcpPacket(Packet packet) {
+    private static synchronized void analyzeTcpPacket(Packet packet) {
         TcpPacket tcpPacket = packet.get(TcpPacket.class);
         if (tcpPacket.getHeader().getSyn() && !tcpPacket.getHeader().getAck()) {
             String srcIp = tcpPacket.getHeader().getSrcAddr().getHostAddress();
@@ -63,7 +60,7 @@ public class ExtendedIDS {
         }
     }
 
-    private static void analyzeIcmpPacket(Packet packet) {
+    private static synchronized void analyzeIcmpPacket(Packet packet) {
         IcmpV4EchoPacket icmpPacket = packet.get(IcmpV4EchoPacket.class);
         String srcIp = icmpPacket.getHeader().getIdentifierAsInt();
         icmpFloodCounter.put(srcIp, icmpFloodCounter.getOrDefault(srcIp, 0) + 1);
@@ -72,7 +69,7 @@ public class ExtendedIDS {
         }
     }
 
-    private static void analyzeUdpPacket(Packet packet) {
+    private static synchronized void analyzeUdpPacket(Packet packet) {
         IpV4Packet ipPacket = packet.get(IpV4Packet.class);
         if (ipPacket != null && ipPacket.getHeader().getProtocol() == IpNumber.UDP) {
             String srcIp = ipPacket.getHeader().getSrcAddr().getHostAddress();
@@ -83,7 +80,7 @@ public class ExtendedIDS {
         }
     }
 
-    private static void analyzeDnsPacket(Packet packet) {
+    private static synchronized void analyzeDnsPacket(Packet packet) {
         UdpPacket udpPacket = packet.get(UdpPacket.class);
         DnsPacket dnsPacket = udpPacket.get(DnsPacket.class);
         if (dnsPacket != null) {
@@ -95,7 +92,7 @@ public class ExtendedIDS {
         }
     }
 
-    private static void analyzeHttpPacket(Packet packet) {
+    private static synchronized void analyzeHttpPacket(Packet packet) {
         HttpPacket httpPacket = packet.get(HttpPacket.class);
         if (httpPacket != null) {
             String srcIp = httpPacket.getHeader().getSrcAddr().getHostAddress();
@@ -124,7 +121,6 @@ public class ExtendedIDS {
 
     private static void sendNotification(String message) {
         System.out.println("Sending notification: " + message);
-        // Hier könntest du einen E-Mail-Client wie JavaMail verwenden, um die Benachrichtigung zu senden
         try {
             String host = "smtp.example.com";
             String from = "alert@example.com";
@@ -132,7 +128,6 @@ public class ExtendedIDS {
 
             Properties properties = System.getProperties();
             properties.setProperty("mail.smtp.host", host);
-
             Session session = Session.getDefaultInstance(properties);
 
             MimeMessage email = new MimeMessage(session);
