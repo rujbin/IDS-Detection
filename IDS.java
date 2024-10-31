@@ -1,15 +1,18 @@
 import org.pcap4j.core.*;
 import org.pcap4j.packet.*;
 import org.pcap4j.util.NifSelector;
+
 import javax.mail.*;
 import javax.mail.internet.*;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+
 import ja3_4j.*;
 
 public class ExtendedIDS {
+
     private static final int SYN_FLOOD_THRESHOLD = 100;
     private static final int ICMP_FLOOD_THRESHOLD = 50;
     private static final int UDP_FLOOD_THRESHOLD = 100;
@@ -137,7 +140,6 @@ public class ExtendedIDS {
 
     private static void sendNotification(String message) {
         System.out.println("Sending notification: " + message);
-        // Hier könntest du einen E-Mail-Client wie JavaMail verwenden, um die Benachrichtigung zu senden
         try {
             String host = "smtp.example.com";
             String from = "alert@example.com";
@@ -161,11 +163,9 @@ public class ExtendedIDS {
 // JA3 Analyzer Klasse
 class TlsAnalyzer {
     public static void analyzeTlsPacket(TcpPacket tcpPacket) {
-        // Beispiel für JA3-Fingerprinting
         if (tcpPacket.getHeader().getDstPort().equals(TcpPort.HTTPS) ||
-            tcpPacket.getHeader().getDstPort().equals(TcpPort.TLS)) {
+                tcpPacket.getHeader().getDstPort().equals(TcpPort.TLS)) {
             System.out.println("TLS/SSL Packet detected.");
-            // JA3-Fingerprinting durchführen
             JA3Fingerprint fingerprint = JA3.extract(tcpPacket);
             String ja3Hash = fingerprint.getHash();
             System.out.println("JA3 Fingerprint: " + ja3Hash);
