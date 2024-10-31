@@ -1,7 +1,6 @@
 import org.pcap4j.core.*;
 import org.pcap4j.packet.*;
 import org.pcap4j.util.NifSelector;
-
 import javax.mail.*;
 import javax.mail.internet.*;
 import java.io.*;
@@ -28,7 +27,6 @@ public class ExtendedIDS {
             String nif = new NifSelector().selectNetworkInterface().getName();
             PcapHandle handle = Pcaps.openLive(nif, 65536, PcapNetworkInterface.PromiscuousMode.PROMISCUOUS, 10);
             PacketListener listener = ExtendedIDS::analyzePacket;
-
             handle.loop(PcapHandle.PcapDlt.EN10MB.value(), listener);
             handle.close();
         } catch (PcapNativeException | InterruptedException | IOException e) {
@@ -51,6 +49,7 @@ public class ExtendedIDS {
         } else if (packet.contains(HttpPacket.class)) {
             analyzeHttpPacket(packet);
         }
+
         // Integration von HTTP/2 Analyse
         if (packet instanceof Http2Frame) {
             Http2Frame frame = (Http2Frame) packet;
@@ -78,7 +77,7 @@ public class ExtendedIDS {
 
     private static synchronized void analyzeIcmpPacket(Packet packet) {
         IcmpV4EchoPacket icmpPacket = packet.get(IcmpV4EchoPacket.class);
-        String srcIp = icmpPacket.getHeader().getIdentifierAsInt();
+        String srcIp = String.valueOf(icmpPacket.getHeader().getIdentifier());
         icmpFloodCounter.put(srcIp, icmpFloodCounter.getOrDefault(srcIp, 0) + 1);
         if (icmpFloodCounter.get(srcIp) > ICMP_FLOOD_THRESHOLD) {
             alert("ICMP-Ping-Flood detected from: " + srcIp);
@@ -86,6 +85,7 @@ public class ExtendedIDS {
     }
 
     private static synchronized void analyzeUdpPacket(Packet packet) {
+        UdpPacket udpPacket = packet.get(UdpPacket.class);
         IpV4Packet ipPacket = packet.get(IpV4Packet.class);
         if (ipPacket != null && ipPacket.getHeader().getProtocol() == IpNumber.UDP) {
             String srcIp = ipPacket.getHeader().getSrcAddr().getHostAddress();
@@ -142,17 +142,14 @@ public class ExtendedIDS {
             String host = "smtp.example.com";
             String from = "alert@example.com";
             String to = "admin@example.com";
-
             Properties properties = System.getProperties();
             properties.setProperty("mail.smtp.host", host);
             Session session = Session.getDefaultInstance(properties);
-
             MimeMessage email = new MimeMessage(session);
             email.setFrom(new InternetAddress(from));
             email.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
             email.setSubject("IDS Alert");
             email.setText(message);
-
             Transport.send(email);
             System.out.println("Notification sent successfully.");
         } catch (MessagingException mex) {
@@ -165,7 +162,7 @@ public class ExtendedIDS {
 class TlsAnalyzer {
     public static void analyzeTlsPacket(TcpPacket tcpPacket) {
         // Beispiel für JA3-Fingerprinting
-        if (tcpPacket.getHeader().getDstPort().equals(TcpPort.HTTPS) || 
+        if (tcpPacket.getHeader().getDstPort().equals(TcpPort.HTTPS) ||
             tcpPacket.getHeader().getDstPort().equals(TcpPort.TLS)) {
             System.out.println("TLS/SSL Packet detected.");
             // JA3-Fingerprinting durchführen
