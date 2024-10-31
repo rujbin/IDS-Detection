@@ -1,7 +1,9 @@
 Extended Intrusion Detection System (IDS)
+
 This project is an Extended Intrusion Detection System (IDS) written in Java, utilizing the Pcap4J library for packet capturing and analysis. The IDS is designed to monitor network traffic, detect potential threats, and alert administrators through various notification channels.
 
 Features
+
 Packet Analysis: Real-time analysis of TCP, UDP, ICMP, DNS, and HTTP packets.
 
 Flood Detection: Detects SYN Flood, ICMP Ping Flood, UDP Flood, DNS Request Flood, and HTTP Request Flood attacks.
@@ -12,12 +14,15 @@ Notifications: Sends alert notifications via email.
 
 Customizable Thresholds: Configurable thresholds for different types of flood detection.
 
+
 Installation
 Clone the repository:
 
 bash
-git clone https://github.com/yourusername/extended-ids.git
+git clone https://github.com/rujbin/ids.git
+
 cd extended-ids
+
 Build the project using Maven:
 
 bash
