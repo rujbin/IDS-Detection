@@ -186,6 +186,4 @@ class Http2Analyzer implements Http2FrameListener {
         System.out.println("HTTP/2 Headers read from stream: " + streamId);
         // Analysiere die Header hier
     }
-
-    // Weitere notwendige Methoden implementieren...
 }
