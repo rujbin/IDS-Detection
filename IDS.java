@@ -1,3 +1,5 @@
+import io.netty.handler.codec.http2.Http2Frame;
+import io.netty.handler.codec.http2.Http2FrameListener;
 import org.pcap4j.core.*;
 import org.pcap4j.packet.*;
 import org.pcap4j.util.NifSelector;
@@ -38,7 +40,10 @@ public class ExtendedIDS {
 
     private static void analyzePacket(Packet packet) {
         if (packet.contains(TcpPacket.class)) {
-            analyzeTcpPacket(packet);
+            TcpPacket tcpPacket = packet.get(TcpPacket.class);
+            analyzeTcpPacket(tcpPacket);
+            TlsAnalyzer.analyzeTlsPacket(tcpPacket);
+            FtpAnalyzer.analyzeFtpPacket(tcpPacket);
         } else if (packet.contains(IcmpV4EchoPacket.class)) {
             analyzeIcmpPacket(packet);
         } else if (packet.contains(UdpPacket.class)) {
@@ -46,6 +51,18 @@ public class ExtendedIDS {
             analyzeDnsPacket(packet);
         } else if (packet.contains(HttpPacket.class)) {
             analyzeHttpPacket(packet);
+        }
+        // Integration von HTTP/2 Analyse
+        if (packet instanceof Http2Frame) {
+            Http2Frame frame = (Http2Frame) packet;
+            Http2Analyzer http2Analyzer = new Http2Analyzer();
+            if (frame instanceof Http2DataFrame) {
+                Http2DataFrame dataFrame = (Http2DataFrame) frame;
+                http2Analyzer.onDataRead(null, dataFrame.streamId(), dataFrame.content(), 0, dataFrame.isEndStream());
+            } else if (frame instanceof Http2HeadersFrame) {
+                Http2HeadersFrame headersFrame = (Http2HeadersFrame) frame;
+                http2Analyzer.onHeadersRead(null, headersFrame.streamId(), headersFrame.headers(), 0, headersFrame.isEndStream());
+            }
         }
     }
 
@@ -121,6 +138,7 @@ public class ExtendedIDS {
 
     private static void sendNotification(String message) {
         System.out.println("Sending notification: " + message);
+        // Hier könntest du einen E-Mail-Client wie JavaMail verwenden, um die Benachrichtigung zu senden
         try {
             String host = "smtp.example.com";
             String from = "alert@example.com";
@@ -142,4 +160,20 @@ public class ExtendedIDS {
             System.err.println("Error sending notification: " + mex.getMessage());
         }
     }
+}
+
+class Http2Analyzer implements Http2FrameListener {
+    @Override
+    public void onDataRead(ChannelHandlerContext ctx, int streamId, ByteBuf data, int padding, boolean endOfStream) {
+        System.out.println("HTTP/2 Data read from stream: " + streamId);
+        // Analysiere die Daten hier
+    }
+
+    @Override
+    public void onHeadersRead(ChannelHandlerContext ctx, int streamId, Http2Headers headers, int padding, boolean endStream) {
+        System.out.println("HTTP/2 Headers read from stream: " + streamId);
+        // Analysiere die Header hier
+    }
+
+    // Weitere notwendige Methoden implementieren...
 }
