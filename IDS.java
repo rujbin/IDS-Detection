@@ -1,5 +1,3 @@
-import io.netty.handler.codec.http2.Http2Frame;
-import io.netty.handler.codec.http2.Http2FrameListener;
 import org.pcap4j.core.*;
 import org.pcap4j.packet.*;
 import org.pcap4j.util.NifSelector;
@@ -10,6 +8,7 @@ import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import ja3_4j.*;
 
 public class ExtendedIDS {
     private static final int SYN_FLOOD_THRESHOLD = 100;
@@ -162,6 +161,22 @@ public class ExtendedIDS {
     }
 }
 
+// JA3 Analyzer Klasse
+class TlsAnalyzer {
+    public static void analyzeTlsPacket(TcpPacket tcpPacket) {
+        // Beispiel für JA3-Fingerprinting
+        if (tcpPacket.getHeader().getDstPort().equals(TcpPort.HTTPS) || 
+            tcpPacket.getHeader().getDstPort().equals(TcpPort.TLS)) {
+            System.out.println("TLS/SSL Packet detected.");
+            // JA3-Fingerprinting durchführen
+            JA3Fingerprint fingerprint = JA3.extract(tcpPacket);
+            String ja3Hash = fingerprint.getHash();
+            System.out.println("JA3 Fingerprint: " + ja3Hash);
+        }
+    }
+}
+
+// HTTP/2 Analyzer
 class Http2Analyzer implements Http2FrameListener {
     @Override
     public void onDataRead(ChannelHandlerContext ctx, int streamId, ByteBuf data, int padding, boolean endOfStream) {
