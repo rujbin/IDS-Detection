@@ -51,13 +51,23 @@ Check Logs: Detected threats are logged in the ids_log.txt file.
 Configure Thresholds: Adjust the thresholds for different attack types in the source code:
 
 java
+
 private static final int SYN_FLOOD_THRESHOLD = 100;
+
 private static final int ICMP_FLOOD_THRESHOLD = 50;
+
 private static final int UDP_FLOOD_THRESHOLD = 100;
+
 private static final int DNS_REQUEST_THRESHOLD = 200;
+
 private static final int HTTP_REQUEST_THRESHOLD = 200;
+
+
 Contribution
+
 Contributions are welcome! Please fork the repository and create a pull request with your changes. Make sure to follow the coding standards and include detailed documentation for any new features.
 
+
 License
+
 This project is licensed under the MIT License. See the LICENSE file for details.
